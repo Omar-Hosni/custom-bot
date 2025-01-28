@@ -1,31 +1,23 @@
 import openai
 import os
 from dotenv import load_dotenv
-
+import random
 load_dotenv()
 # Set your OpenAI API key
 openai.api_key = os.getenv("OPENAI_TOKEN")
 
 
-def generate_nick_response(conversation, model="gpt-4", max_tokens=200):
-    """
-    Generate a Nick-like response by constraining GPT to the provided conversation history.
+def generate_nick_response(conversation, model="gpt-4-1106-preview", max_tokens=150):
 
-    Args:
-        conversation (list): List of conversation messages (user queries and assistant responses).
-        model (str): GPT model to use.
-        max_tokens (int): Maximum number of tokens in the response.
-
-    Returns:
-        str: The generated response.
-    """
     try:
         response = openai.ChatCompletion.create(
             model=model,
             messages=conversation,
             max_tokens=max_tokens,
-            temperature=0.7,  # Strictly deterministic
-            top_p=1,       # Do not limit the probability distribution
+            temperature=random.choice([0, 0.1, 0.2, 0.3, 0.4]),  # Slight creativity while staying focused
+            top_p=0.95,        # Balanced diversity for natural responses
+            presence_penalty=0.2,  # Discourage repetition of ideas
+            frequency_penalty=0.1  # Avoid repeated words
         )
         return response['choices'][0]['message']['content'].strip()
     except Exception as e:
