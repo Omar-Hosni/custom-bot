@@ -1,41 +1,81 @@
+import os
 import json
 from gpt import generate_nick_response
+from util import  find_cos_similarity, find_most_similar_entry, generate_embedding, EMBEDDING_MODEL
 
 # File to store conversation history
 CONVERSATION_FILE = "conversation.json"
 
-# Load conversation history from file
-def load_conversation_history():
-    try:
-        with open(CONVERSATION_FILE, "r") as file:
-            return json.load(file)
-    except FileNotFoundError:
-        # Initialize with a default system message if the file doesn't exist
-        return [
-            {"role": "system", "content": "You are Nick, a business advisor specializing in B2B strategies. Only use the information provided in the conversation history to answer questions."}
-        ]
+# Load conversation history once at startup
+try:
+    with open(CONVERSATION_FILE, "r", encoding="utf-8") as file:
+        conversation_history = json.load(file)
+except FileNotFoundError:
+    conversation_history = []
 
-# Save updated conversation history to file
-def save_conversation_history(conversation):
-    with open(CONVERSATION_FILE, "w") as file:
-        json.dump(conversation, file, indent=4)
+# Save conversation history to file, checking for duplicates
+def save_conversation_history():
+    global conversation_history
 
-def get_response(user_input) -> str:
-    lowered: str = user_input.lower()
+    # # Ensure there are enough messages to check
+    # if len(conversation_history) < 2:
+    #     return
 
-    # Load existing conversation history
-    conversation = load_conversation_history()
+    # # Extract the last two messages
+    # new_user_msg = conversation_history[-2]
+    # new_assistant_msg = conversation_history[-1]
 
-    # Add the new user query to the conversation history
-    conversation.append({"role": "user", "content": lowered})
+    # # Existing history excludes the last two messages
+    # existing_history = conversation_history[:-2]
 
-    # Generate Nick's response
-    response = generate_nick_response(conversation)
+    # # Check if user message is a duplicate
+    # user_msg_exists = any(
+    #     has_majority_common_words(entry["content"], new_user_msg["content"])
+    #     for entry in existing_history
+    #     if entry["role"] == "user"
+    # )
 
-    # Add Nick's response to the conversation history
-    conversation.append({"role": "assistant", "content": response})
+    # # Check if assistant message is a duplicate
+    # assistant_msg_exists = any(
+    #     has_majority_common_words(entry["content"], new_assistant_msg["content"])
+    #     for entry in existing_history
+    #     if entry["role"] == "assistant"
+    # )
 
-    # Save updated conversation history
-    save_conversation_history(conversation)
+    # if not (user_msg_exists or assistant_msg_exists):
+        # Save the updated history to the file
+    with open(CONVERSATION_FILE, "w", encoding="utf-8") as file:
+        json.dump(conversation_history, file, indent=4, ensure_ascii=False)
+    print("Conversation history updated successfully.")
+    # else:
+        # print("No changes saved; duplicates detected.")
 
-    return response
+
+# generate response
+def get_response(user_input: str) -> str:
+    global conversation_history
+
+    # Add user message to history
+    user_input_emb = generate_embedding(user_input, EMBEDDING_MODEL)
+    conversation_history.append({"role": "user", 
+                                 "content": user_input.lower().strip(),
+                                 "embedding": user_input_emb})
+
+    # Generate response by finding cosine similarity of other questions
+    similar_response = find_most_similar_entry(query_embedding=user_input_emb,
+                                               conversation=conversation_history)
+    
+    if similar_response:
+        return similar_response #if you found similar question just return its response, and don't update the conv json
+    else:
+        # Generate response by gpt using current conversation history because you met a new question, not similar to prev ones
+        response = generate_nick_response(conversation_history)
+
+        # Add assistant response to history
+        conversation_history.append({"role": "assistant",
+                                    "content": response.lower().strip()})
+
+        # Save updated history (checks for duplicates internally)
+        save_conversation_history()
+
+        return response
