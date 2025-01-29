@@ -1,12 +1,12 @@
 # NickBot
 
-NickBot is a conversational bot that simulates a business advisor named "Nick." It uses OpenAI's GPT API to generate responses and maintains a persistent conversation history in a `conversation.json` file.
+NickBot is a conversational bot that simulates a business advisor named "Nick." It uses OpenAI's GPT API, and Embedding to store and generate responses and maintains a persistent conversation history in a `conversation.json` file.
 
 ## Features
 
 - **Simulates Nick:** Nick is a B2B business advisor who provides strategic advice to users.
-- **Persistent Conversations:** Tracks and saves all user-bot interactions in `conversation.json`.
-- **Custom Responses:** Generates tailored responses based on the context of the conversation.
+- **Persistent Conversations:** Tracks and saves all unique user-bot and user-consultant interactions in `conversation.json`.
+- **Custom Responses:** Generates tailored responses based on the context of the conversation or from similar previous chats.
 
 ---
 
@@ -24,3 +24,4 @@ NickBot is a conversational bot that simulates a business advisor named "Nick." 
 ```bash
 git clone <repository-url>
 cd NickBot
+python/python3 bot.py
